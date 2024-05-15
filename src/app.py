@@ -27,41 +27,62 @@ def sitemap():
 
 @app.route('/members', methods=['GET'])
 def handle_hello():
-
     # this is how you can use the Family datastructure by calling its methods
     members = jackson_family.get_all_members()
     response_body = members
-    
     return jsonify(response_body), 200
 
 
-@app.route('/member', methods= ['POST'])
-def add_member():
-    body = request.get_json(silent = True)
+@app.route('/member/<int:id>', methods=['GET'])
+def get_member(id):
+    member = jackson_family.get_member(id)
+    if member:
+        return jsonify(member), 200
+    else:
+        return jsonify({"msg": "member with ID" +  id + "not found"}), 404
+
+
+@app.route('/member', methods=['POST'])
+def new_member():
+    body = request.get_json(silent=True)
     if body is None:
-        return jsonify({"msg" : "info es requerid"}), 400
-
+        return jsonify({"msg": "body is requerid"}), 400
     if "first_name" not in body:
-        return jsonify ({"msg" : "first name is requerid"})
+        return jsonify({"msg": "first name is requerid"}), 400
     print(body)
-
-    new_member = {
-        "id" : jackson_family._generateId(),
-        "first_name" : body["first_name"],
-        "last_name" : jackson_family.last_name,
-        "age" : body["age"],
-        "lucky_numbers" : body["lucky_numbers"]
-    }
-
-    jackson_family.add_member(new_member)
     
-    return jsonify({"msg" : "new member added"}),201
+    # Verificar si el usuario proporcionó un ID
+    if "id" in body:
+        new_member_data = {
+            "id": body["id"],
+            "first_name": body["first_name"],
+            "last_name": jackson_family.last_name,
+            "age": body["age"],
+            "lucky_numbers": body["lucky_numbers"]
+        }
+    else:
+        new_member_data = {
+            "id": jackson_family._generateId(),
+            "first_name": body["first_name"],
+            "last_name": jackson_family.last_name,
+            "age": body["age"],
+            "lucky_numbers": body["lucky_numbers"]
+        }
 
 
+    jackson_family.add_member(new_member_data)
+    return jsonify({"msg": "new member added"}), 200
 
 
+@app.route('/member/<int:id>', methods=['DELETE'])
+def delete_member(id):
+    result = jackson_family.delete_member(id)
+    if result["msg"] == f"Member with ID {id} deleted":
+        return jsonify({"done": True}), result["status_code"]
+    else:
+        return jsonify({"done": False}), result["status_code"]
 
-
+    
 
 # this only runs if `$ python src/app.py` is executed
 if __name__ == '__main__':
